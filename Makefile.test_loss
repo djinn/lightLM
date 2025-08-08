@@ -1,0 +1,20 @@
+CC = gcc
+CFLAGS = -I./c23/include -g -Wall
+LDFLAGS = -lm
+
+SRCS = c23/src/c_args.c c23/src/c_vector.c c23/src/c_densematrix.c c23/src/c_loss.c c23/src/c_dictionary.c c23/src/test_loss.c
+OBJS = $(SRCS:.c=.o)
+TARGET = test_loss
+
+.PHONY: all clean
+
+all: $(TARGET)
+
+$(TARGET): $(OBJS)
+	$(CC) $(CFLAGS) -o $(TARGET) $(OBJS) $(LDFLAGS)
+
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+clean:
+	rm -f $(OBJS) $(TARGET)

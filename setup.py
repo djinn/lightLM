@@ -23,6 +23,9 @@ ext_modules = [
         sources=[
             "python/lightlm/lightlm.c",
             "c23/src/c_args.c",
+            "c23/src/c_vector.c",
+            "c23/src/c_densematrix.c",
+            "c23/src/c_dictionary.c",
         ],
         include_dirs=["c23/include"],
         language='c',

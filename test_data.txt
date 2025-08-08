@@ -1,0 +1,3 @@
+hello world __label__en
+this is a test __label__en
+fasttext is great __label__en

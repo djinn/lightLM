@@ -24,8 +24,8 @@ lightlm_args_t* lightlm_args_new() {
   args->dim = 100;
   args->ws = 5;
   args->epoch = 5;
-  args->minCount = 5;
-  args->minCountLabel = 0;
+  args->minCount = 1;
+  args->minCountLabel = 1;
   args->neg = 5;
   args->wordNgrams = 1;
   args->loss = lightlm_loss_name_ns;
