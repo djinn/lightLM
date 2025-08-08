@@ -61,6 +61,15 @@ void lightlm_model_update(
     lightlm_real lr,
     lightlm_model_state_t* state);
 
+void lightlm_model_predict(
+    lightlm_model_t* model,
+    const int32_t* input,
+    int input_size,
+    int32_t k,
+    lightlm_real threshold,
+    void* predictions, // lightlm_prediction_t*
+    lightlm_model_state_t* state);
+
 
 #ifdef __cplusplus
 }

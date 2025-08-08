@@ -31,6 +31,7 @@ typedef lightlm_real (*lightlm_loss_forward_t)(
     int backprop);
 
 typedef void (*lightlm_loss_compute_output_t)(lightlm_loss_t* loss, struct lightlm_model_state_s* state);
+typedef void (*lightlm_loss_predict_t)(lightlm_loss_t* loss, int32_t k, lightlm_real threshold, void* predictions, struct lightlm_model_state_s* state);
 typedef void (*lightlm_loss_free_t)(lightlm_loss_t* loss);
 
 struct lightlm_loss_s {
@@ -39,6 +40,7 @@ struct lightlm_loss_s {
 
     lightlm_loss_forward_t forward;
     lightlm_loss_compute_output_t compute_output;
+    lightlm_loss_predict_t predict;
     lightlm_loss_free_t free;
 };
 

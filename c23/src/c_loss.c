@@ -8,6 +8,8 @@
 
 #include "lightlm/loss.h"
 #include "lightlm/model.h"
+#include "lightlm/vector.h"
+#include "lightlm/predictions.h"
 #include <stdlib.h>
 #include <math.h>
 #include <assert.h>
@@ -56,6 +58,22 @@ static lightlm_real loss_sigmoid(const lightlm_loss_base_t* base, lightlm_real x
     } else {
         int64_t i = (int64_t)((x + MAX_SIGMOID) * SIGMOID_TABLE_SIZE / MAX_SIGMOID / 2);
         return base->t_sigmoid_[i];
+    }
+}
+
+static void findKBest(lightlm_loss_t* loss, int32_t k, lightlm_real threshold, predictions_t* heap, const lightlm_vector_t* output) {
+    for (int32_t i = 0; i < output->size; i++) {
+        if (output->data[i] < threshold) {
+            continue;
+        }
+        if (heap->size == k && output->data[i] < heap->data[0].score) {
+            continue;
+        }
+        predictions_push(heap, output->data[i], i);
+        qsort(heap->data, heap->size, sizeof(prediction_t), compare_predictions);
+        if (heap->size > k) {
+            heap->size--;
+        }
     }
 }
 
@@ -117,6 +135,14 @@ static lightlm_real softmax_loss_forward(
     return -loss_log(&sl->base, ((lightlm_model_state_t*)state)->output->data[target]);
 }
 
+static void softmax_loss_predict(lightlm_loss_t* loss, int32_t k, lightlm_real threshold, void* predictions, struct lightlm_model_state_s* state) {
+    predictions_t* heap = (predictions_t*)predictions;
+    softmax_loss_compute_output(loss, state);
+    findKBest(loss, k, threshold, heap, ((lightlm_model_state_t*)state)->output);
+    qsort(heap->data, heap->size, sizeof(prediction_t), compare_predictions);
+}
+
+
 static void softmax_loss_free(lightlm_loss_t* loss) {
     if (loss == NULL) return;
     lightlm_softmax_loss_t* sl = (lightlm_softmax_loss_t*)loss->data;
@@ -140,6 +166,7 @@ lightlm_loss_t* lightlm_softmax_loss_new(lightlm_matrix_t* wo) {
     loss->data = sl;
     loss->forward = softmax_loss_forward;
     loss->compute_output = softmax_loss_compute_output;
+    loss->predict = softmax_loss_predict;
     loss->free = softmax_loss_free;
 
     return loss;

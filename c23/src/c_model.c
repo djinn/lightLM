@@ -103,7 +103,7 @@ void lightlm_model_update(
 
     lightlm_vector_t* grad = state->grad;
     lightlm_vector_zero(grad);
-    double lossValue = model->loss_->forward(model->loss_, targets, targets_size, targetIndex, state, lr, 1);
+    double lossValue = model->loss_->forward(model->loss_, targets, targets_size, targetIndex, (struct lightlm_model_state_s*)state, lr, 1);
     lightlm_model_state_increment_n_examples(state, lossValue);
 
     if (model->normalizeGradient_) {
@@ -112,4 +112,20 @@ void lightlm_model_update(
     for (int i = 0; i < input_size; i++) {
         model->wi_->add_vector_to_row(model->wi_, grad, input[i], 1.0);
     }
+}
+
+void lightlm_model_predict(
+    lightlm_model_t* model,
+    const int32_t* input,
+    int input_size,
+    int32_t k,
+    lightlm_real threshold,
+    void* predictions, // lightlm_prediction_t*
+    lightlm_model_state_t* state
+) {
+    if (input_size == 0) {
+        return;
+    }
+    lightlm_model_compute_hidden(model, input, input_size, state);
+    model->loss_->predict(model->loss_, k, threshold, predictions, (struct lightlm_model_state_s*)state);
 }

@@ -4,6 +4,7 @@
 #include "lightlm/vector.h"
 #include "lightlm/densematrix.h"
 #include "lightlm/dictionary.h"
+#include "lightlm/lightlm.h"
 
 // ==========================================================================
 // Args Type
@@ -61,15 +62,102 @@ LightlmArgs_set_minCount(LightlmArgsObject *self, PyObject *value, void *closure
     return 0;
 }
 
-static PyObject *
-LightlmArgs_hello(LightlmArgsObject *self, PyObject *Py_UNUSED(ignored))
+static PyObject*
+LightlmArgs_get_minCountLabel(LightlmArgsObject *self, void *closure)
 {
-    printf("Hello from lightlm.Args object!\n");
-    Py_RETURN_NONE;
+    return PyLong_FromLong(self->args.minCountLabel);
 }
 
-static PyMethodDef LightlmArgs_methods[] = {
-    {"hello", (PyCFunction) LightlmArgs_hello, METH_NOARGS, "Prints a hello message."},
+static int
+LightlmArgs_set_minCountLabel(LightlmArgsObject *self, PyObject *value, void *closure)
+{
+    if (value == NULL) {
+        PyErr_SetString(PyExc_TypeError, "Cannot delete the minCountLabel attribute");
+        return -1;
+    }
+    if (!PyLong_Check(value)) {
+        PyErr_SetString(PyExc_TypeError, "The minCountLabel attribute value must be an integer");
+        return -1;
+    }
+    self->args.minCountLabel = PyLong_AsLong(value);
+    return 0;
+}
+
+static PyObject*
+LightlmArgs_get_input(LightlmArgsObject *self, void *closure)
+{
+    if (self->args.input == NULL) {
+        Py_RETURN_NONE;
+    }
+    return PyUnicode_FromString(self->args.input);
+}
+
+static int
+LightlmArgs_set_input(LightlmArgsObject *self, PyObject *value, void *closure)
+{
+    if (value == NULL) {
+        free(self->args.input);
+        self->args.input = NULL;
+        return 0;
+    }
+    if (!PyUnicode_Check(value)) {
+        PyErr_SetString(PyExc_TypeError, "The input attribute value must be a string");
+        return -1;
+    }
+    free(self->args.input);
+    self->args.input = strdup(PyUnicode_AsUTF8(value));
+    return 0;
+}
+
+
+static PyObject*
+LightlmArgs_get_dsub(LightlmArgsObject *self, void *closure)
+{
+    return PyLong_FromLong(self->args.dsub);
+}
+
+static int
+LightlmArgs_set_dsub(LightlmArgsObject *self, PyObject *value, void *closure)
+{
+    if (value == NULL) {
+        PyErr_SetString(PyExc_TypeError, "Cannot delete the dsub attribute");
+        return -1;
+    }
+    if (!PyLong_Check(value)) {
+        PyErr_SetString(PyExc_TypeError, "The dsub attribute value must be an integer");
+        return -1;
+    }
+    self->args.dsub = PyLong_AsLong(value);
+    return 0;
+}
+
+static PyObject*
+LightlmArgs_get_qnorm(LightlmArgsObject *self, void *closure)
+{
+    return PyBool_FromLong(self->args.qnorm);
+}
+
+static int
+LightlmArgs_set_qnorm(LightlmArgsObject *self, PyObject *value, void *closure)
+{
+    if (value == NULL) {
+        PyErr_SetString(PyExc_TypeError, "Cannot delete the qnorm attribute");
+        return -1;
+    }
+    if (!PyBool_Check(value)) {
+        PyErr_SetString(PyExc_TypeError, "The qnorm attribute value must be a boolean");
+        return -1;
+    }
+    self->args.qnorm = (value == Py_True);
+    return 0;
+}
+
+static PyGetSetDef LightlmArgs_getseters[] = {
+    {"minCount", (getter)LightlmArgs_get_minCount, (setter)LightlmArgs_set_minCount, "minimal number of word occurences", NULL},
+    {"minCountLabel", (getter)LightlmArgs_get_minCountLabel, (setter)LightlmArgs_set_minCountLabel, "minimal number of label occurences", NULL},
+    {"input", (getter)LightlmArgs_get_input, (setter)LightlmArgs_set_input, "input file path", NULL},
+    {"dsub", (getter)LightlmArgs_get_dsub, (setter)LightlmArgs_set_dsub, "dsub for quantization", NULL},
+    {"qnorm", (getter)LightlmArgs_get_qnorm, (setter)LightlmArgs_set_qnorm, "qnorm for quantization", NULL},
     {NULL}  /* Sentinel */
 };
 
@@ -83,7 +171,7 @@ static PyTypeObject LightlmArgsType = {
     .tp_new = PyType_GenericNew,
     .tp_init = (initproc) LightlmArgs_init,
     .tp_dealloc = (destructor) LightlmArgs_dealloc,
-    .tp_methods = LightlmArgs_methods,
+    .tp_getset = LightlmArgs_getseters,
 };
 
 
@@ -322,6 +410,89 @@ static PyTypeObject LightlmDictionaryType = {
 
 
 // ==========================================================================
+// LightLM Top-level object
+// ==========================================================================
+
+typedef struct {
+    PyObject_HEAD
+    lightlm_t *lightlm_handle;
+} LightLMObject;
+
+static int
+LightLM_init(LightLMObject *self, PyObject *args, PyObject *kwds)
+{
+    self->lightlm_handle = lightlm_new();
+    if (self->lightlm_handle == NULL) {
+        PyErr_SetString(PyExc_MemoryError, "Failed to allocate lightlm_t");
+        return -1;
+    }
+    return 0;
+}
+
+static void
+LightLM_dealloc(LightLMObject *self)
+{
+    lightlm_free(self->lightlm_handle);
+    Py_TYPE(self)->tp_free((PyObject *) self);
+}
+
+static PyObject *
+LightLM_train(LightLMObject *self, PyObject *args)
+{
+    LightlmArgsObject *args_obj;
+    if (!PyArg_ParseTuple(args, "O!", &LightlmArgsType, &args_obj)) {
+        return NULL;
+    }
+    lightlm_train(self->lightlm_handle, &args_obj->args);
+    Py_RETURN_NONE;
+}
+
+static PyObject *
+LightLM_quantize(LightLMObject *self, PyObject *args)
+{
+    LightlmArgsObject *qargs_obj;
+    if (!PyArg_ParseTuple(args, "O!", &LightlmArgsType, &qargs_obj)) {
+        return NULL;
+    }
+    lightlm_quantize(self->lightlm_handle, &qargs_obj->args);
+    Py_RETURN_NONE;
+}
+
+static PyObject *
+LightLM_test(LightLMObject *self, PyObject *args)
+{
+    const char *filename;
+    int k = 1;
+    float threshold = 0.0;
+    if (!PyArg_ParseTuple(args, "s|if", &filename, &k, &threshold)) {
+        return NULL;
+    }
+    lightlm_test(self->lightlm_handle, filename, k, threshold);
+    Py_RETURN_NONE;
+}
+
+static PyMethodDef LightLM_methods[] = {
+    {"train", (PyCFunction) LightLM_train, METH_VARARGS, "Train a model."},
+    {"quantize", (PyCFunction) LightLM_quantize, METH_VARARGS, "Quantize a model."},
+    {"test", (PyCFunction) LightLM_test, METH_VARARGS, "Test a model."},
+    {NULL}  /* Sentinel */
+};
+
+static PyTypeObject LightLMType = {
+    PyVarObject_HEAD_INIT(NULL, 0)
+    .tp_name = "lightlm.LightLM",
+    .tp_doc = "lightlm main object",
+    .tp_basicsize = sizeof(LightLMObject),
+    .tp_itemsize = 0,
+    .tp_flags = Py_TPFLAGS_DEFAULT,
+    .tp_new = PyType_GenericNew,
+    .tp_init = (initproc) LightLM_init,
+    .tp_dealloc = (destructor) LightLM_dealloc,
+    .tp_methods = LightLM_methods,
+};
+
+
+// ==========================================================================
 // Module Definition
 // ==========================================================================
 
@@ -351,6 +522,10 @@ PyInit_lightlm(void)
 
     // Prepare the Dictionary type
     if (PyType_Ready(&LightlmDictionaryType) < 0)
+        return NULL;
+
+    // Prepare the LightLM type
+    if (PyType_Ready(&LightLMType) < 0)
         return NULL;
 
     m = PyModule_Create(&lightlm_module);
@@ -387,6 +562,18 @@ PyInit_lightlm(void)
     // Add the Dictionary type to the module
     Py_INCREF(&LightlmDictionaryType);
     if (PyModule_AddObject(m, "Dictionary", (PyObject *) &LightlmDictionaryType) < 0) {
+        Py_DECREF(&LightlmDictionaryType);
+        Py_DECREF(&LightlmMatrixType);
+        Py_DECREF(&LightlmVectorType);
+        Py_DECREF(&LightlmArgsType);
+        Py_DECREF(m);
+        return NULL;
+    }
+
+    // Add the LightLM type to the module
+    Py_INCREF(&LightLMType);
+    if (PyModule_AddObject(m, "LightLM", (PyObject *) &LightLMType) < 0) {
+        Py_DECREF(&LightLMType);
         Py_DECREF(&LightlmDictionaryType);
         Py_DECREF(&LightlmMatrixType);
         Py_DECREF(&LightlmVectorType);
