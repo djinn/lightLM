@@ -17,15 +17,15 @@ lightlm_args_t* lightlm_args_new() {
     return NULL;
   }
 
-  args->input = NULL;
+    args->input = NULL;
   args->output = NULL;
   args->lr = 0.05;
   args->lrUpdateRate = 100;
   args->dim = 100;
   args->ws = 5;
   args->epoch = 5;
-  args->minCount = 5;
-  args->minCountLabel = 0;
+    args->minCount = 5;
+    args->minCountLabel = 0;
   args->neg = 5;
   args->wordNgrams = 1;
   args->loss = lightlm_loss_name_ns;
@@ -68,4 +68,19 @@ void lightlm_args_free(lightlm_args_t* args) {
   free(args->autotuneMetric);
   free(args->autotuneModelSize);
   free(args);
+}
+
+lightlm_args_t* lightlm_args_copy(const lightlm_args_t* src) {
+    lightlm_args_t* dest = (lightlm_args_t*)malloc(sizeof(lightlm_args_t));
+    if (dest == NULL) return NULL;
+    *dest = *src; // shallow copy
+    // deep copy the strings
+    if (src->input) dest->input = strdup(src->input);
+    if (src->output) dest->output = strdup(src->output);
+    if (src->label) dest->label = strdup(src->label);
+    if (src->pretrainedVectors) dest->pretrainedVectors = strdup(src->pretrainedVectors);
+    if (src->autotuneValidationFile) dest->autotuneValidationFile = strdup(src->autotuneValidationFile);
+    if (src->autotuneMetric) dest->autotuneMetric = strdup(src->autotuneMetric);
+    if (src->autotuneModelSize) dest->autotuneModelSize = strdup(src->autotuneModelSize);
+    return dest;
 }

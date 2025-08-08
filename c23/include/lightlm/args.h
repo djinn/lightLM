@@ -77,6 +77,7 @@ typedef struct lightlm_args_s {
 
 lightlm_args_t* lightlm_args_new();
 void lightlm_args_free(lightlm_args_t* args);
+lightlm_args_t* lightlm_args_copy(const lightlm_args_t* src);
 
 #ifdef __cplusplus
 }

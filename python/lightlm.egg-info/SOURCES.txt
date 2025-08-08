@@ -4,6 +4,16 @@ README.md
 setup.cfg
 setup.py
 c23/src/c_args.c
+c23/src/c_densematrix.c
+c23/src/c_dictionary.c
+c23/src/c_dynamic_array.c
+c23/src/c_lightlm.c
+c23/src/c_loss.c
+c23/src/c_meter.c
+c23/src/c_model.c
+c23/src/c_productquantizer.c
+c23/src/c_quantmatrix.c
+c23/src/c_vector.c
 python/README.md
 python/README.rst
 python/benchmarks/README.rst
